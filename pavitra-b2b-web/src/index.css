@@ -1,0 +1,14 @@
+ @import "tailwindcss";
+:root {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #F8F9FA;
+  color: #212529;
+  min-height: 100vh;
+  overflow-y: auto;
+}
