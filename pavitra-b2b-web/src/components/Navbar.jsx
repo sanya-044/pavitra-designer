@@ -41,7 +41,7 @@ export default function Navbar({ currentView, setCurrentView, userRole, setUserR
         {userRole ? (
           <div className="flex items-center space-x-3 border-l pl-4 border-gray-200">
             <button 
-              onClick={() => setCurrentView(userRole === 'seller' ? 'seller-dash' : 'retailer-dash')}
+              onClick={() => setCurrentView(userRole === 'seller' ? 'seller-dash' : userRole === 'admin' ? 'admin-dash' : 'retailer-dash')}
               className="flex items-center space-x-1 bg-[#F5EEDC] text-[#482922] px-3 py-1.5 rounded-lg text-sm font-semibold"
             >
               <Store size={16} />
