@@ -1,8 +1,19 @@
 import React from 'react';
-import { ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
+import { ShoppingBag, Trash2, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 
-export default function BagScreen({ cart = [], removeFromCart, setCurrentView }) {
-  const totalItems = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
+export default function BagScreen({
+  cart = [],
+  cartSummary = null,
+  loading = false,
+  error = null,
+  updateQuantity,
+  removeFromCart,
+  setCurrentView
+}) {
+  const totalItems = cartSummary?.totalUnits || cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
+  const subtotalDisplay = cartSummary?.formattedSubtotal || 'Calculated at checkout';
+  const taxDisplay = cartSummary?.formattedTax || '5% GST Included on Checkout';
+  const grandTotalDisplay = cartSummary?.formattedGrandTotal || subtotalDisplay;
 
   return (
     <div className="space-y-6 pb-12">
@@ -16,7 +27,19 @@ export default function BagScreen({ cart = [], removeFromCart, setCurrentView })
         </span>
       </div>
 
-      {cart.length === 0 ? (
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
+          <AlertCircle size={18} className="shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="py-20 text-center flex flex-col items-center justify-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-amber-950" />
+          <p className="text-sm text-stone-500">Updating bulk inquiry bag...</p>
+        </div>
+      ) : cart.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-2xl border border-stone-200 p-8 space-y-4">
           <ShoppingBag className="w-16 h-16 text-stone-300 mx-auto" />
           <h2 className="text-lg font-bold text-stone-800">Your inquiry bag is empty</h2>
@@ -32,27 +55,61 @@ export default function BagScreen({ cart = [], removeFromCart, setCurrentView })
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Items List */}
           <div className="lg:col-span-2 space-y-4">
-            {cart.map((item) => (
-              <div key={item.id} className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm flex items-center justify-between gap-4">
-                <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-xl shrink-0" />
-                <div className="flex-1">
-                  <span className="text-xs font-semibold text-amber-900">{item.origin}</span>
-                  <h3 className="font-bold text-stone-900 text-sm">{item.name}</h3>
-                  <p className="text-xs text-stone-500">Minimum Order Quantity (MOQ): {item.moq}</p>
-                  <p className="text-sm font-extrabold text-stone-900 mt-1">{item.price}</p>
+            {cart.map((item) => {
+              const productId = item.product?._id || item.product?.id || item.id;
+              const title = item.product?.name || item.name;
+              const origin = item.product?.origin || item.origin;
+              const moq = item.product?.moq || item.moq || 5;
+              const price = item.product?.formattedPrice || item.price;
+              const image = item.product?.image || item.image;
+              const quantity = item.quantity || 1;
+
+              return (
+                <div key={productId} className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm flex items-center justify-between gap-4">
+                  <img src={image} alt={title} className="w-20 h-20 object-cover rounded-xl shrink-0" />
+                  <div className="flex-1">
+                    <span className="text-xs font-semibold text-amber-900">{origin}</span>
+                    <h3 className="font-bold text-stone-900 text-sm">{title}</h3>
+                    <p className="text-xs text-stone-500">Minimum Order Quantity (MOQ): {moq} pcs</p>
+                    <p className="text-sm font-extrabold text-stone-900 mt-1">{price}</p>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    {updateQuantity ? (
+                      <div className="flex items-center gap-1 border border-stone-200 rounded-lg p-1">
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(productId, Math.max(1, quantity - 1))}
+                          className="px-2 py-0.5 text-stone-600 hover:bg-stone-100 rounded text-sm font-bold"
+                          title="Decrease quantity"
+                        >
+                          -
+                        </button>
+                        <span className="text-xs font-bold px-2">{quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(productId, quantity + 1)}
+                          className="px-2 py-0.5 text-stone-600 hover:bg-stone-100 rounded text-sm font-bold"
+                          title="Increase quantity"
+                        >
+                          +
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-sm font-semibold bg-stone-100 px-3 py-1 rounded-lg">Qty: {quantity}</span>
+                    )}
+
+                    <button 
+                      onClick={() => removeFromCart(productId)}
+                      className="text-red-500 hover:text-red-700 p-2"
+                      title="Remove item"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-semibold bg-stone-100 px-3 py-1 rounded-lg">Qty: {item.quantity || 1}</span>
-                  <button 
-                    onClick={() => removeFromCart(item.id)}
-                    className="text-red-500 hover:text-red-700 p-2"
-                    title="Remove item"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Summary Box */}
@@ -64,20 +121,28 @@ export default function BagScreen({ cart = [], removeFromCart, setCurrentView })
                 <span className="font-semibold text-stone-900">{cart.length} items</span>
               </div>
               <div className="flex justify-between text-stone-600">
-                <span>Direct Mill Pricing:</span>
-                <span className="font-semibold text-emerald-600">Applied</span>
+                <span>Total Units:</span>
+                <span className="font-semibold text-stone-900">{totalItems} pcs</span>
               </div>
               <div className="flex justify-between text-stone-600">
-                <span>GST Tax Invoice:</span>
-                <span className="font-semibold text-stone-900">Included on Checkout</span>
+                <span>Subtotal (Server Calculated):</span>
+                <span className="font-bold text-stone-900">{subtotalDisplay}</span>
+              </div>
+              <div className="flex justify-between text-stone-600">
+                <span>GST Tax (5% Wholesale):</span>
+                <span className="font-semibold text-stone-900">{taxDisplay}</span>
+              </div>
+              <div className="flex justify-between text-stone-900 border-t pt-3 font-extrabold text-base">
+                <span>Grand Total:</span>
+                <span className="text-amber-950">{grandTotalDisplay}</span>
               </div>
             </div>
 
             <button 
-              onClick={() => alert('Proceeding to Secure B2B Checkout & GST Verification backend API...')}
+              onClick={() => setCurrentView('checkout')}
               className="w-full bg-amber-950 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-amber-900 transition shadow"
             >
-              Proceed to Secure Checkout <ArrowRight size={16} />
+              Proceed to Wholesale Checkout <ArrowRight size={16} />
             </button>
           </div>
         </div>

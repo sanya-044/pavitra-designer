@@ -48,8 +48,14 @@ export default function Navbar({ currentView, setCurrentView, userRole, setUserR
               <span className="capitalize">{userRole} Dashboard</span>
             </button>
             <button 
-              onClick={() => { setUserRole(null); setCurrentView('catalog'); }}
-              className="text-gray-500 hover:text-red-600"
+              onClick={() => {
+                if (onLogout) onLogout();
+                else {
+                  setUserRole(null);
+                  setCurrentView('catalog');
+                }
+              }}
+              className="text-gray-500 hover:text-red-600 p-1 rounded-lg transition"
               title="Logout"
             >
               <LogOut size={18} />
